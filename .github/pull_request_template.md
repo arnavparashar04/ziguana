@@ -1,33 +1,29 @@
-<!--- Please provide a general summary of your changes in the title above -->
+# PR Title / Closes #<issue>
 
-## Pull request type
-<!-- Please try to limit your pull request to one type, submit multiple pull requests if needed -->
+## Context
+Why is this change needed? What issue does it address?
 
-Please check the type of change your PR introduces:
+<br>
 
-- [ ] Bugfix
-- [ ] Feature
-- [ ] Code style update (formatting, renaming)
-- [ ] Refactoring (no functional changes, no api changes)
-- [ ] Build related changes
-- [ ] Documentation content changes
-- [ ] Other (please describe):
+## Implementation
+How was the issue resolved? Briefly describe the approach taken.
 
-## What is the current behavior?
-<!-- Please describe the current behavior that you are modifying, or link to a relevant issue -->
+<br>
 
-Issue Number: N/A
+## Changes
+Summarize the key technical changes made in this PR.
 
-## What is the new behavior?
-<!-- Please describe the behavior or changes that are being added by this PR -->
+<br>
 
--
--
--
+## Testing
+Describe the tests you ran and their results. Include the environment if relevant.
 
-## Other information
-<!-- Any other information that is important to this PR such as screenshots of how the component looks before and after the change -->
+<br>
 
-## Checklist
- - [ ] Follows conventional commits
- - [ ] Does not contain any sensitive keys
+## Documentation
+Mention any documentation added or updated. If not applicable, write `N/A`.
+
+<br>
+
+## Additional Information
+Anything else that would help reviewers (design decisions, limitations, references, screenshots, follow-up work, etc.).
