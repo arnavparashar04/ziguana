@@ -97,7 +97,9 @@ pub const Lexer = struct {
     current: usize,
     line: usize,
     column: usize,
-    pub fn create(source: []const u8) Lexer {
+    const LexerType = @This();
+
+    pub fn create(source: []const u8) LexerType {
         return .{
             .source = source,
             .current = 0,
@@ -105,42 +107,46 @@ pub const Lexer = struct {
             .column = 1,
         };
     }
+
+    fn peekNext(lexer: *const LexerType) ?u8 {
+        if (lexer.current + 1 >= lexer.source.len) {
+            return null;
+        } else {
+            return (lexer.source[lexer.current + 1]);
+        }
+    }
+
+    fn isAtEnd(lexer: *const LexerType) bool {
+        return (lexer.current >= lexer.source.len);
+    }
+
+    fn match(lexer: *LexerType, expected: u8) bool {
+        if (lexer.isAtEnd()) {
+            return false;
+        }
+        if (lexer.source[lexer.current] != expected) {
+            return false;
+        } else {
+            lexer.current += 1;
+            return true;
+        }
+    }
+
+    fn moveNext(lexer: *LexerType) ?u8 {
+        if (lexer.isAtEnd()) {
+            return null;
+        }
+        const c = lexer.source[lexer.current];
+        lexer.current += 1;
+        return c;
+    }
 }; //current, line and colum reprsent the current state of the lexer
 
-fn peekNext(lexer: *Lexer) ?u8 {
-    if (lexer.current + 1 >= lexer.source.len) {
-        return null;
-    } else {
-        return (lexer.source[lexer.current + 1]);
-    }
-}
-
-fn isAtEnd(lexer: *Lexer) bool {
-    return (lexer.current >= lexer.source.len);
-}
-
-fn match(lexer: *Lexer, expected: u8) bool {
-    if (isAtEnd(lexer)) {
-        return false;
-    }
-    if (lexer.source[lexer.current] != expected) {
-        return false;
-    } else {
-        lexer.current += 1;
-        return true;
-    }
-}
-fn moveNext(lexer: *Lexer) ?u8 {
-    if (isAtEnd(lexer)) {
-        return null;
-    }
-    const c = lexer.source[lexer.current];
-    lexer.current += 1;
-    return c;
-}
-
-pub fn lex(lexer: *Lexer) void {
-    while (!isAtEnd(lexer)) {
+pub fn lex(lexer: *Lexer, allocator: std.mem.Allocator) !std.ArrayList(Token) {
+    const tokens: std.ArrayList(Token) = .empty; //change to var later
+    _ = allocator; //will be used later to create tokens
+    while (!lexer.isAtEnd()) {
         //main lexing loop
     }
+    return tokens;
 }
