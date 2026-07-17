@@ -13,5 +13,5 @@ pub fn main(init: std.process.Init) !void {
     var lexer = lexerMod.init(source);
 
     var tokens = try lexerMod.lex(&lexer, init.gpa);
-    defer tokens.deinit();
+    defer tokens.deinit(init.gpa);
 }

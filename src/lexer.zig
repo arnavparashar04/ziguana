@@ -420,10 +420,10 @@ pub fn nextToken(self:*Lexer) Token
 }
 
 pub fn lex(self:*Lexer, allocator: std.mem.Allocator) !std.ArrayList(Token) {
-    var tokens = std.ArrayList(Token).init(allocator);
+    var tokens:std.ArrayList(Token) = std.ArrayList(Token).empty;
     while (true) {
         const tok = self.nextToken();
-        try tokens.append(tok);
+        try tokens.append(allocator, tok);
         if (tok.payload == .eof) break;
     }
     return tokens;
