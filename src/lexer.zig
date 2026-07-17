@@ -364,4 +364,4 @@ pub const Lexer = struct {
         }
         return tokens;
     }
-}; // closes `pub const Lexer = struct { ... }` — everything above from `input:` down is now part of Lexer
+}; 
