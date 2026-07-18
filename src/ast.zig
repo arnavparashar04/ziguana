@@ -18,7 +18,7 @@ pub const Expr = union(enum) {
     },
     call: struct {
         callee: []const u8,
-        args: []Expr,
+        args: []*Expr,
     },
     index: struct {
         array: []const u8,
@@ -71,9 +71,9 @@ pub const Stmt = union(enum) {
     },
 
     return_stmt: ?*Expr,
-    block: []Stmt,
+    block: []*Stmt,
     expr_stmt: *Expr,
-    program: []Stmt,
+    program: []*Stmt,
 };
 
 pub fn makeLiteral(a: std.mem.Allocator, lit: Literal) !*Expr {
