@@ -14,8 +14,9 @@ const Literal = ast.Literal;
 
 //errors
 const parserErros = error{
-    UnexpectedLiteral,
     ExpectedAssignmentOperator,
+    ExpectedExpression,
+    UnexpectedLiteral,
     UnexpectedStatementStart,
 };
 
@@ -236,7 +237,7 @@ pub const Parser = struct {
                 return expression;
             },
             else => {
-                return error.expectedexpression;
+                return error.ExpectedExpression;
             },
         }
     }
@@ -264,8 +265,8 @@ pub const Parser = struct {
     }
 
     fn parseCallStatement(self: *Self) !*Stmt {
-        const call_exp = self.parseFunctionCall();
-        _ = self.consume(.semicolon);
+        const call_exp = try self.parseFunctionCall();
+        _ = try self.consume(.semicolon);
         return ast.makeExprStmt(self.allocator, call_exp);
     }
     fn parseIfStatement(self: *Self) !*Stmt {
@@ -284,7 +285,7 @@ pub const Parser = struct {
         return ast.makeIfStmt(self.allocator, condition, if_branch, else_branch);
     }
     fn parseWhileStatement(self: *Self) !*Stmt {
-        _ = try self.consume(.if_);
+        _ = try self.consume(.while_);
         _ = try self.consume(.lparen);
         const condition = try self.parseExpression();
         _ = try self.consume(.rparen);
@@ -303,7 +304,7 @@ pub const Parser = struct {
     fn parseFunctionCall(self: *Self) !*Expr {
         const nameToken = try self.consume(.identifier);
         const callee = nameToken.payload.identifier;
-        _ = self.consume(.lparen);
+        _ = try self.consume(.lparen);
         var args = std.ArrayList(Expr).init(self.allocator);
         if (getTag(self.peek()) != .rparen) {
             const first = try self.parseExpression();
@@ -316,7 +317,7 @@ pub const Parser = struct {
         }
 
         _ = try self.consume(.rparen);
-        return ast.makeCall(self.allocator, callee, args.toOwnedSlice());
+        return ast.makeCall(self.allocator, callee, try args.toOwnedSlice());
     }
 
     pub fn parse(self: *Self) !*Stmt {
