@@ -90,8 +90,22 @@ pub const Parser = struct {
     fn parseExpression(self: *Self) !*Expr {
         _ = self;
     }
-    fn parseParameter(self: *Self) !*Param {
-        _ = self;
+    fn parseParameter(self: *Self) !Param {
+        const typeToken = self.advance();
+        if (getTag(typeToken) != .type_) {
+            return error.ExpectedType;
+        }
+        const ty = typeToken.payload.type_;
+        const identToken = self.advance();
+        if (getTag(identToken) != .identifier) {
+            return error.ExpectedIdentifier;
+        }
+        const ident = identToken.payload.identifier;
+
+        return .{
+            .ty = ty,
+            .name = ident,
+        };
     }
     fn parseLiteral(self: *Self) !*Expr {
         const token = self.advance();
