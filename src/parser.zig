@@ -237,7 +237,7 @@ pub const Parser = struct {
         const condition = try self.parseExpression();
         _ = try self.consume(.rparen);
 
-        const if_branch = try self.parseBlock();//just parse the thing in {..}
+        const if_branch = try self.parseBlock(); //just parse the thing in {..}
         //check for else
         var else_branch: ?*Stmt = null;
         if (getTag(self.peek()) == .else_) {
@@ -245,8 +245,6 @@ pub const Parser = struct {
             else_branch = try self.parseBlock();
         }
         return ast.makeIfStmt(self.allocator, condition, if_branch, else_branch);
-
-
     }
     fn parseWhileStatement(self: *Self) !*Stmt {
         _ = try self.consume(.if_);
@@ -255,10 +253,13 @@ pub const Parser = struct {
         _ = try self.consume(.rparen);
         const content = try self.parseBlock();
         return ast.makeWhileStmt(self.allocator, condition, content);
-
     }
     fn parseReturnStatement(self: *Self) !*Stmt {
-        
+        // return_stmt = "return" expression ";" ;
+        _ = try self.consume(.return_);
+        const value = try self.parseExpression();
+        _ = try self.consume(.semicolon);
+        return ast.makeReturnStmt(self.allocator, value);
     }
     fn parseFunctionCall(self: *Self) !*Expr {
         _ = self;
