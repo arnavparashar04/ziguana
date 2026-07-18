@@ -86,9 +86,6 @@ pub const Parser = struct {
     fn parseStatement(self: *Self) !*Stmt {
         _ = self;
     }
-    fn parseExpression(self: *Self) !*Expr {
-        _ = self;
-    }
     fn parseParameter(self: *Self) !Param {
         const typeToken = self.advance();
         if (getTag(typeToken) != .type_) {
@@ -135,21 +132,45 @@ pub const Parser = struct {
     fn parseVarInit(self: *Self) !*VarInit {
         _ = self;
     }
+    fn parseExpression(self: *Self) !*Expr {
+        return self.parseEquality();
+    }
     fn parseEquality(self: *Self) !*Expr {
-        _ = self;
+        var left = try self.parseComparison();
+        while (getTag(self.peek()) == .equality or getTag(self.peek()) == .inequality) {
+            const operator = self.advance();
+            const right = try self.parseComparison();
+            left = try ast.makeBinary(self.allocator, getTag(operator), left, right);
+        }
+        return left;
     }
     fn parseComparison(self: *Self) !*Expr {
-        _ = self;
+        var left = try self.parseTerm();
+
+        while (getTag(self.peek()) == .lessthan or getTag(self.peek()) == .lessthan_equal or getTag(self.peek()) == .greaterthan or getTag(self.peek()) == .greaterthan_equal) {
+            const operator = self.advance();
+            const right = try self.parseTerm();
+            left = try ast.makeBinary(self.allocator, getTag(operator), left, right);
+        }
+
+        return left;
     }
     fn parseTerm(self: *Self) !*Expr {
-        _ = self;
+        var left = try self.parseFactor();
+
+        while (getTag(self.peek()) == .plus or getTag(self.peek()) == .minus) {
+            const operator = self.advance();
+            const right = try self.parseFactor();
+            left = try ast.makeBinary(self.allocator, getTag(operator), left, right);
+        }
+        return left;
     }
     fn parseFactor(self: *Self) !*Expr {
         var left = try self.parsePrimary();
         while (getTag(self.peek()) == .star or getTag(self.peek()) == .slash or getTag(self.peek()) == .mod) {
             const operator = self.advance();
             const right = try self.parsePrimary();
-            left = try ast.makeBinary(self.allocator, operator, left, right);
+            left = try ast.makeBinary(self.allocator, getTag(operator), left, right);
         }
         return left;
     }
