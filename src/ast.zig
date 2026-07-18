@@ -29,7 +29,7 @@ pub const Expr = union(enum) {
 
 pub const VarInit = union(enum) {
     expr: *Expr,
-    array_literal: []Expr,
+    array_literal: []*Expr,
 };
 
 pub const Param = struct {
@@ -94,7 +94,7 @@ pub fn makeBinary(a: std.mem.Allocator, op: TokenTag, left: *Expr, right: *Expr)
     return node;
 }
 
-pub fn makeCall(a: std.mem.Allocator, callee: []const u8, args: []Expr) !*Expr {
+pub fn makeCall(a: std.mem.Allocator, callee: []const u8, args: []*Expr) !*Expr {
     const node = try a.create(Expr);
     node.* = .{ .call = .{ .callee = callee, .args = args } };
     return node;
@@ -118,7 +118,7 @@ pub fn makeWhileStmt(a: std.mem.Allocator, condition: *Expr, body: *Stmt) !*Stmt
     return node;
 }
 
-pub fn makeBlock(a: std.mem.Allocator, stmts: []Stmt) !*Stmt {
+pub fn makeBlock(a: std.mem.Allocator, stmts: []*Stmt) !*Stmt {
     const node = try a.create(Stmt);
     node.* = .{ .block = stmts };
     return node;
@@ -154,7 +154,7 @@ pub fn makeExprStmt(a: std.mem.Allocator, expr: *Expr) !*Stmt {
     return node;
 }
 
-pub fn makeProgram(a: std.mem.Allocator, stmts: []Stmt) !*Stmt {
+pub fn makeProgram(a: std.mem.Allocator, stmts: []*Stmt) !*Stmt {
     const node = try a.create(Stmt);
     node.* = .{ .program = stmts };
     return node;
