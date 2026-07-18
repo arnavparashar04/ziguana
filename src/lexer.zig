@@ -143,23 +143,9 @@ pub const Lexer = struct {
         }
         self.skipWhiteSpace();
     }
-    fn isDigit(chr: u8) bool {
-        if (chr >= '0' and chr <= '9') {
-            return true;
-        } else {
-            return false;
-        }
-    }
-    fn isAlpha(chr: u8) bool {
-        if ((chr >= 'A' and chr <= 'Z') or (chr >= 'a' and chr <= 'z')) {
-            return true;
-        } else {
-            return false;
-        }
-    }
     pub fn readNumber(self: *Lexer) i64 {
         const start = self.position;
-        while (isDigit(self.ch)) {
+        while (std.ascii.isDigit(self.ch)) {
             self.readChar();
         }
         const number_slice: []const u8 = self.input[start..self.position];
@@ -186,7 +172,7 @@ pub const Lexer = struct {
     }
     pub fn readIdentifier(self: *Lexer) []const u8 {
         const start: usize = self.position;
-        while (isDigit(self.ch) or isAlpha(self.ch) or self.ch == '_') {
+        while (std.ascii.isDigit(self.ch) or std.ascii.isAlphabetic(self.ch) or self.ch == '_') {
             self.readChar();
         }
         return self.input[start..self.position];
@@ -339,11 +325,11 @@ pub const Lexer = struct {
             const stringValue: []const u8 = self.readString();
             return Token{ .payload = .{ .string = stringValue }, .line = start_line, .column = start_col };
         }
-        if (isDigit(self.ch)) {
+        if (std.ascii.isDigit(self.ch)) {
             const numberValue: i64 = self.readNumber();
             return Token{ .payload = .{ .number = numberValue }, .line = start_line, .column = start_col };
         }
-        if (isAlpha(self.ch)) {
+        if (std.ascii.isAlphabetic(self.ch)) {
             const wordValue: []const u8 = self.readIdentifier();
             const keyword_payload = lookUpKeyword(wordValue);
             return Token{ .payload = keyword_payload, .line = start_line, .column = start_col };
