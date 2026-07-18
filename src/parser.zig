@@ -249,7 +249,13 @@ pub const Parser = struct {
 
     }
     fn parseWhileStatement(self: *Self) !*Stmt {
-        _ = self;
+        _ = try self.consume(.if_);
+        _ = try self.consume(.lparen);
+        const condition = try self.parseExpression();
+        _ = try self.consume(.rparen);
+        const content = try self.parseBlock();
+        return ast.makeWhileStmt(self.allocator, condition, content);
+
     }
     fn parseReturnStatement(self: *Self) !*Stmt {
         
