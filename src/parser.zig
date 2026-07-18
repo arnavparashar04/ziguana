@@ -12,6 +12,11 @@ const VarInit = ast.VarInit;
 const Expr = ast.Expr;
 const Literal = ast.Literal;
 
+//errors
+const parserErros = error{
+    UnexpectedLiteral,
+};
+
 //all parser declarations and implementation in this file
 pub const ParseErr = struct {
     message: []const u8,
@@ -127,6 +132,7 @@ pub const Parser = struct {
                 });
             },
             //handle error handling here for unexpected literal
+            else => return error.UnexpectedLiteral,
         }
     }
     fn parseVarInit(self: *Self) !*VarInit {
