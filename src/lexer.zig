@@ -364,4 +364,4 @@ pub const Lexer = struct {
         }
         return tokens;
     }
-}; 
+};

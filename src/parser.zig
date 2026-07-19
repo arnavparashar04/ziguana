@@ -13,12 +13,16 @@ const Expr = ast.Expr;
 const Literal = ast.Literal;
 
 //errors
-const parserErros = error{
+const ParserErrors = error{
     ExpectedAssignmentOperator,
     ExpectedExpression,
     UnexpectedLiteral,
     UnexpectedStatementStart,
-};
+    ExpectedToken,
+    ExpectedType,
+    ExpectedIdentifier,
+    UnexpectedToken,
+} || std.mem.Allocator.Error;
 
 //all parser declarations and implementation in this file
 pub const ParseErr = struct {
@@ -35,7 +39,7 @@ pub const Parser = struct {
     const Self = @This();
 
     pub fn init(allocator: std.mem.Allocator, tokens: []const Token) Parser {
-        return .{ .tokens = tokens, .current = 0, .next = 1, .errors = std.ArrayList(ParseErr).init(allocator), .allocator = allocator };
+        return .{ .tokens = tokens, .current = 0, .errors = std.ArrayList(ParseErr).empty, .allocator = allocator };
     }
 
     fn getTag(token: Token) TokenTag {
@@ -61,7 +65,6 @@ pub const Parser = struct {
     fn advance(self: *Self) Token {
         if (!self.isAtEnd()) {
             self.current += 1;
-            self.next = self.current + 1;
             return self.tokens[self.current - 1];
         } else {
             return self.tokens[self.current];
@@ -81,23 +84,23 @@ pub const Parser = struct {
         return self.tokens[self.current + 1];
     }
 
-    fn parseProgram(self: *Self) !*Stmt {
-        var stmts = std.ArrayList(*Stmt).init(self.allocator);
+    fn parseProgram(self: *Self) ParserErrors!*Stmt {
+        var stmts = std.ArrayList(*Stmt).empty;
 
         while (!self.isAtEnd()) {
             if (getTag(self.peek()) == .func) {
-                try stmts.append(try self.parseFunction());
+                try stmts.append(self.allocator, try self.parseFunction());
             } else {
-                try stmts.append(try self.parseStatement());
+                try stmts.append(self.allocator, try self.parseStatement());
             }
         }
 
         return try ast.makeProgram(
             self.allocator,
-            try stmts.toOwnedSlice(),
+            try stmts.toOwnedSlice(self.allocator),
         );
     }
-    fn parseFunction(self: *Self) !*Stmt {
+    fn parseFunction(self: *Self) ParserErrors!*Stmt {
         _ = try self.consume(.func);
 
         const typeToken = try self.consume(.type_);
@@ -107,15 +110,14 @@ pub const Parser = struct {
         const name = nameToken.payload.identifier;
 
         _ = try self.consume(.lparen);
-
-        var params = std.ArrayList(Param).init(self.allocator);
+        var params = std.ArrayList(Param).empty;
 
         if (getTag(self.peek()) != .rparen) {
-            try params.append(try self.parseParameter());
+            try params.append(self.allocator, try self.parseParameter());
 
             while (getTag(self.peek()) == .comma) {
                 _ = try self.consume(.comma);
-                try params.append(try self.parseParameter());
+                try params.append(self.allocator, try self.parseParameter());
             }
         }
 
@@ -127,20 +129,20 @@ pub const Parser = struct {
             self.allocator,
             return_type,
             name,
-            try params.toOwnedSlice(),
+            try params.toOwnedSlice(self.allocator),
             body,
         );
     }
-    fn parseBlock(self: *Self) !*Stmt {
+    fn parseBlock(self: *Self) ParserErrors!*Stmt {
         _ = try self.consume(.lbrace);
-        var stmts = std.ArrayList(*Stmt).init(self.allocator);
+        var stmts = std.ArrayList(*Stmt).empty;
         while (getTag(self.peek()) != .rbrace and !self.isAtEnd()) {
-            try stmts.append(try self.parseStatement());
+            try stmts.append(self.allocator, try self.parseStatement());
         }
         _ = try self.consume(.rbrace);
-        return ast.makeBlock(self.allocator, try stmts.toOwnedSlice());
+        return ast.makeBlock(self.allocator, try stmts.toOwnedSlice(self.allocator));
     }
-    fn parseStatement(self: *Self) !*Stmt {
+    fn parseStatement(self: *Self) ParserErrors!*Stmt {
         return switch (getTag(self.peek())) {
             .type_ => self.parseVarDecl(),
             .if_ => self.parseIfStatement(),
@@ -174,7 +176,7 @@ pub const Parser = struct {
             .name = ident,
         };
     }
-    fn parseLiteral(self: *Self) !*Expr {
+    fn parseLiteral(self: *Self) ParserErrors!*Expr {
         const token = self.advance();
         switch (token.payload) {
             .number => |value| {
@@ -209,19 +211,19 @@ pub const Parser = struct {
 
         _ = try self.consume(.lbracket);
 
-        var elements = std.ArrayList(*ast.Expr).init(self.allocator);
+        var elements = std.ArrayList(*ast.Expr).empty;
 
         if (getTag(self.peek()) != .rbracket) {
-            try elements.append(try self.parseExpression());
+            try elements.append(self.allocator, try self.parseExpression());
 
             while (getTag(self.peek()) == .comma) {
                 _ = self.advance();
-                try elements.append(try self.parseExpression());
+                try elements.append(self.allocator, try self.parseExpression());
             }
         }
 
         _ = try self.consume(.rbracket);
-        return .{ .array_literal = try elements.toOwnedSlice() };
+        return .{ .array_literal = try elements.toOwnedSlice(self.allocator) };
     }
     fn parseVarDecl(self: *Self) !*Stmt {
         const typeToken = try self.consume(.type_);
@@ -258,10 +260,10 @@ pub const Parser = struct {
             vinit,
         );
     }
-    fn parseExpression(self: *Self) !*Expr {
+    fn parseExpression(self: *Self) ParserErrors!*Expr {
         return self.parseEquality();
     }
-    fn parseEquality(self: *Self) !*Expr {
+    fn parseEquality(self: *Self) ParserErrors!*Expr {
         var left = try self.parseComparison();
         while (getTag(self.peek()) == .equality or getTag(self.peek()) == .inequality) {
             const operator = self.advance();
@@ -270,7 +272,7 @@ pub const Parser = struct {
         }
         return left;
     }
-    fn parseComparison(self: *Self) !*Expr {
+    fn parseComparison(self: *Self) ParserErrors!*Expr {
         var left = try self.parseTerm();
 
         while (getTag(self.peek()) == .lessthan or getTag(self.peek()) == .lessthan_equal or getTag(self.peek()) == .greaterthan or getTag(self.peek()) == .greaterthan_equal) {
@@ -281,7 +283,7 @@ pub const Parser = struct {
 
         return left;
     }
-    fn parseTerm(self: *Self) !*Expr {
+    fn parseTerm(self: *Self) ParserErrors!*Expr {
         var left = try self.parseFactor();
 
         while (getTag(self.peek()) == .plus or getTag(self.peek()) == .minus) {
@@ -291,7 +293,7 @@ pub const Parser = struct {
         }
         return left;
     }
-    fn parseFactor(self: *Self) !*Expr {
+    fn parseFactor(self: *Self) ParserErrors!*Expr {
         var left = try self.parsePrimary();
         while (getTag(self.peek()) == .star or getTag(self.peek()) == .slash or getTag(self.peek()) == .mod) {
             const operator = self.advance();
@@ -301,7 +303,7 @@ pub const Parser = struct {
         return left;
     }
 
-    fn parseArrayAccess(self: *Self) !*Expr {
+    fn parseArrayAccess(self: *Self) ParserErrors!*Expr {
         const nameToken = try self.consume(.identifier);
         const array = nameToken.payload.identifier;
         _ = try self.consume(.lbracket);
@@ -309,7 +311,7 @@ pub const Parser = struct {
         _ = try self.consume(.rbracket);
         return ast.makeIndex(self.allocator, array, subscript);
     }
-    fn parsePrimary(self: *Self) !*Expr {
+    fn parsePrimary(self: *Self) ParserErrors!*Expr {
         var token = self.peek();
         switch (getTag(token)) {
             .number, .string, .true_, .false_ => {
@@ -356,12 +358,12 @@ pub const Parser = struct {
         return ast.makeAssignment(self.allocator, name, index, op, value);
     }
 
-    fn parseCallStatement(self: *Self) !*Stmt {
+    fn parseCallStatement(self: *Self) ParserErrors!*Stmt {
         const call_exp = try self.parseFunctionCall();
         _ = try self.consume(.semicolon);
         return ast.makeExprStmt(self.allocator, call_exp);
     }
-    fn parseIfStatement(self: *Self) !*Stmt {
+    fn parseIfStatement(self: *Self) ParserErrors!*Stmt {
         _ = try self.consume(.if_);
         _ = try self.consume(.lparen);
         const condition = try self.parseExpression();
@@ -376,7 +378,7 @@ pub const Parser = struct {
         }
         return ast.makeIfStmt(self.allocator, condition, if_branch, else_branch);
     }
-    fn parseWhileStatement(self: *Self) !*Stmt {
+    fn parseWhileStatement(self: *Self) ParserErrors!*Stmt {
         _ = try self.consume(.while_);
         _ = try self.consume(.lparen);
         const condition = try self.parseExpression();
@@ -384,30 +386,30 @@ pub const Parser = struct {
         const content = try self.parseBlock();
         return ast.makeWhileStmt(self.allocator, condition, content);
     }
-    fn parseReturnStatement(self: *Self) !*Stmt {
+    fn parseReturnStatement(self: *Self) ParserErrors!*Stmt {
         _ = try self.consume(.return_);
         const value = try self.parseExpression();
         _ = try self.consume(.semicolon);
         return ast.makeReturnStmt(self.allocator, value);
     }
 
-    fn parseFunctionCall(self: *Self) !*Expr {
+    fn parseFunctionCall(self: *Self) ParserErrors!*Expr {
         const nameToken = try self.consume(.identifier);
         const callee = nameToken.payload.identifier;
         _ = try self.consume(.lparen);
-        var args = std.ArrayList(*Expr).init(self.allocator);
+        var args = std.ArrayList(*Expr).empty;
         if (getTag(self.peek()) != .rparen) {
-            try args.append(try self.parseExpression());
+            try args.append(self.allocator, try self.parseExpression());
             while (getTag(self.peek()) == .comma) {
                 _ = try self.consume(.comma);
-                try args.append(try self.parseExpression());
+                try args.append(self.allocator, try self.parseExpression());
             }
         }
         _ = try self.consume(.rparen);
-        return ast.makeCall(self.allocator, callee, try args.toOwnedSlice());
+        return ast.makeCall(self.allocator, callee, try args.toOwnedSlice(self.allocator));
     }
 
-    pub fn parse(self: *Self) !*Stmt {
+    pub fn parse(self: *Self) ParserErrors!*Stmt {
         return try self.parseProgram();
     }
 };
