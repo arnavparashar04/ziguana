@@ -230,7 +230,13 @@ pub const Lexer = struct {
 
         if (self.mode == lexerMode.string_state)
         {
-            if(self.ch == '{')
+            if (self.ch == 0)
+            {
+                self.mode = lexerMode.normal_state;
+                print("Interpolation not closed", .{});
+                return Token{ .payload = .{ .eof = {}}, .line = start_line, .column = start_col };
+            }
+            else if(self.ch == '{')
             {
                 self.readChar();
                 self.mode = lexerMode.normal_state;
@@ -388,9 +394,19 @@ pub const Lexer = struct {
 
         // Identifiers, Numbers etc -
         if (self.ch == '"') {
-            self.readChar();
-            self.mode = lexerMode.string_state;
-            return Token{ .payload = .{ .string_start = {}}, .line = start_line, .column = start_col };
+            if (self.in_interpolation == true)
+            {
+                print("Unterminated Interpolation\n", .{}); // error for unterminated interpolation
+                self.in_interpolation = false;
+                self.readChar();
+                return Token{ .payload = .{ .string_end = {} }, .line = start_line, .column = start_col };
+            }
+            else
+            {
+                self.readChar();
+                self.mode = lexerMode.string_state;
+                return Token{ .payload = .{ .string_start = {}}, .line = start_line, .column = start_col };
+            }
         }
         if (std.ascii.isDigit(self.ch)) {
             const numberValue: i64 = self.readNumber();
@@ -402,7 +418,15 @@ pub const Lexer = struct {
             return Token{ .payload = keyword_payload, .line = start_line, .column = start_col };
         }
         if (self.ch == 0) {
-            return Token{ .payload = .{ .eof = {} }, .line = start_line, .column = start_col };
+            if (self.in_interpolation == true)
+            {
+                print("Unterminated Interpolation\n", .{}); // error for unterminated interpolation
+                return Token{ .payload = .{ .eof = {} }, .line = start_line, .column = start_col };
+            }
+            else
+            {
+                return Token{ .payload = .{ .eof = {} }, .line = start_line, .column = start_col };
+            }
         }
         self.readChar();
         return self.nextToken();
