@@ -51,7 +51,6 @@ pub const TokenTag = enum {
     semicolon,
     true_,
     false_,
-    void_,
     invalid, // for collecting errors
     string_start,
     string_end,
@@ -389,7 +388,21 @@ pub const Lexer = struct {
         }
         if (self.ch == '*') {
             if (self.peekChar() == '=') {
-                self.readChar();
+                self.readChar();# Make sure main is up to date
+git checkout main
+git pull origin main
+
+# Create a new branch
+git checkout -b codegen
+
+# Add Tanishk's repo if you haven't already
+git remote add tanishk https://github.com/TanishkDev/ziguana.git
+
+# Fetch all branches
+git fetch tanishk
+
+# Merge CodeGenGenerator into your branch
+git merge tanishk/CodeGenGenerator
                 self.readChar();
                 return Token{ .payload = .{ .star_equal = {} }, .line = start_line, .column = start_col };
             }
