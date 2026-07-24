@@ -141,16 +141,89 @@ test "comment between statements" {
     try std.testing.expect(tokens.items[5].payload == .type_);
     try std.testing.expectEqual(@as(usize, 3), tokens.items[5].line);
 }
-test "keyword int" {}
-test "keyword bool" {}
-test "keyword string" {}
-test "keyword fn" {}
-test "keyword if" {}
-test "keyword else" {}
-test "keyword while" {}
-test "keyword return" {}
-test "keyword true" {}
-test "keyword false" {}
+test "keyword int" {
+    var l = Lexer.init("int");
+    var tokens = try l.lex(alloc);
+    defer tokens.deinit(alloc);
+    try std.testing.expectEqual(@as(usize, 2), tokens.items.len);
+    try std.testing.expect(tokens.items[0].payload == .type_);
+    try std.testing.expectEqual(lexer.TypeKind.Int, tokens.items[0].payload.type_);
+    try std.testing.expect(tokens.items[1].payload == .eof);
+}
+test "keyword bool" {
+    var l = Lexer.init("bool");
+    var tokens = try l.lex(alloc);
+    defer tokens.deinit(alloc);
+    try std.testing.expectEqual(@as(usize, 2), tokens.items.len);
+    try std.testing.expect(tokens.items[0].payload == .type_);
+    try std.testing.expectEqual(lexer.TypeKind.Bool, tokens.items[0].payload.type_);
+    try std.testing.expect(tokens.items[1].payload == .eof);
+}
+test "keyword string" {
+    var l = Lexer.init("string");
+    var tokens = try l.lex(alloc);
+    defer tokens.deinit(alloc);
+    try std.testing.expectEqual(@as(usize, 2), tokens.items.len);
+    try std.testing.expect(tokens.items[0].payload == .type_);
+    try std.testing.expectEqual(lexer.TypeKind.String, tokens.items[0].payload.type_);
+    try std.testing.expect(tokens.items[1].payload == .eof);
+}
+test "keyword fn" {
+    var l = Lexer.init("fn");
+    var tokens = try l.lex(alloc);
+    defer tokens.deinit(alloc);
+    try std.testing.expectEqual(@as(usize, 2), tokens.items.len);
+    try std.testing.expect(tokens.items[0].payload == .func);
+    try std.testing.expect(tokens.items[1].payload == .eof);
+}
+test "keyword if" {
+    var l = Lexer.init("if");
+    var tokens = try l.lex(alloc);
+    defer tokens.deinit(alloc);
+    try std.testing.expectEqual(@as(usize, 2), tokens.items.len);
+    try std.testing.expect(tokens.items[0].payload == .if_);
+    try std.testing.expect(tokens.items[1].payload == .eof);
+}
+test "keyword else" {
+    var l = Lexer.init("else");
+    var tokens = try l.lex(alloc);
+    defer tokens.deinit(alloc);
+    try std.testing.expectEqual(@as(usize, 2), tokens.items.len);
+    try std.testing.expect(tokens.items[0].payload == .else_);
+    try std.testing.expect(tokens.items[1].payload == .eof);
+}
+test "keyword while" {
+    var l = Lexer.init("while");
+    var tokens = try l.lex(alloc);
+    defer tokens.deinit(alloc);
+    try std.testing.expectEqual(@as(usize, 2), tokens.items.len);
+    try std.testing.expect(tokens.items[0].payload == .while_);
+    try std.testing.expect(tokens.items[1].payload == .eof);
+}
+test "keyword return" {
+    var l = Lexer.init("return");
+    var tokens = try l.lex(alloc);
+    defer tokens.deinit(alloc);
+    try std.testing.expectEqual(@as(usize, 2), tokens.items.len);
+    try std.testing.expect(tokens.items[0].payload == .return_);
+    try std.testing.expect(tokens.items[1].payload == .eof);
+}
+test "keyword true" {
+    var l = Lexer.init("true");
+    var tokens = try l.lex(alloc);
+    defer tokens.deinit(alloc);
+    try std.testing.expectEqual(@as(usize, 2), tokens.items.len);
+    try std.testing.expect(tokens.items[0].payload == .true_);
+    try std.testing.expect(tokens.items[1].payload == .eof);
+}
+test "keyword false" {
+    var l = Lexer.init("false");
+    var tokens = try l.lex(alloc);
+    defer tokens.deinit(alloc);
+    try std.testing.expectEqual(@as(usize, 2), tokens.items.len);
+    try std.testing.expect(tokens.items[0].payload == .false_);
+    try std.testing.expect(tokens.items[1].payload == .eof);
+}
 test "all keywords together" {}
 test "single letter identifier" {}
 test "multi letter identifier" {}
