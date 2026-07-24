@@ -21,9 +21,11 @@
 ---
 ### Arnav's progress
 * **This week:**
-  * 
+  * Worked on implementing the parser functions
+  * Worked on the intial structure of main and fetching the source file
 * **Next week :**
-  *  
+  * Completing parser 
+  * Working on Ast printer
 ---
 ### Tanishk's progress 
 * **This week:**
