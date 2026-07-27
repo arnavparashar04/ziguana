@@ -4,7 +4,7 @@ const Lexer = lexer.Lexer;
 const Token = lexer.Token;
 const TokenTag = lexer.TokenTag;
 const alloc = std.testing.allocator;
-
+// rn this has tests for the lexer producing correct tokens for correct inputs, for malformed inputs a seperate test suite may be better because the lexer does not seem to stop lexing after reporting lexer errors
 test "empty file" {
     var l = Lexer.init("");
     var tokens = try l.lex(alloc);
@@ -224,41 +224,398 @@ test "keyword false" {
     try std.testing.expect(tokens.items[0].payload == .false_);
     try std.testing.expect(tokens.items[1].payload == .eof);
 }
-test "all keywords together" {}
-test "single letter identifier" {}
-test "multi letter identifier" {}
-test "leading underscore identifier" {}
-test "internal underscore identifier" {}
-test "ending underscore identifier" {}
-test "identifier with digits" {}
-test "long identifier" {}
-test "identifier after newline" {}
-test "identifier after comment" {}
-test "identifier beside punctuation" {}
-test "identifier beginning with keyword int" {}
-test "identifier beginning with keyword return" {}
-test "identifier beginning with keyword while" {}
-test "identifier beginning with keyword if" {}
-test "identifier beginning with keyword true" {}
-test "identifier beginning with keyword false" {}
-test "integer zero" {}
-test "single digit integer" {}
-test "multiple digit integer" {}
-test "leading zero integer" {}
-test "large integer" {}
-test "integer before operator" {}
-test "integer after operator" {}
-test "integer before punctuation" {}
-test "empty string" {}
-test "simple string" {}
-test "string with spaces" {}
-test "string with punctuation" {}
-test "string with numbers" {}
-test "string with operators" {}
-test "string with braces" {}
-test "long string" {}
-test "multiple strings" {}
-test "string followed by identifier" {}
+test "all keywords together" {
+    var l = Lexer.init("int bool string fn if else while return true false");
+    var tokens = try l.lex(alloc);
+    defer tokens.deinit(alloc);
+    try std.testing.expectEqual(@as(usize, 11), tokens.items.len);
+    try std.testing.expect(tokens.items[0].payload == .type_);
+    try std.testing.expectEqual(lexer.TypeKind.Int, tokens.items[0].payload.type_);
+    try std.testing.expect(tokens.items[1].payload == .type_);
+    try std.testing.expectEqual(lexer.TypeKind.Bool, tokens.items[1].payload.type_);
+    try std.testing.expect(tokens.items[2].payload == .type_);
+    try std.testing.expectEqual(lexer.TypeKind.String, tokens.items[2].payload.type_);
+    try std.testing.expect(tokens.items[3].payload == .func);
+    try std.testing.expect(tokens.items[4].payload == .if_);
+    try std.testing.expect(tokens.items[5].payload == .else_);
+    try std.testing.expect(tokens.items[6].payload == .while_);
+    try std.testing.expect(tokens.items[7].payload == .return_);
+    try std.testing.expect(tokens.items[8].payload == .true_);
+    try std.testing.expect(tokens.items[9].payload == .false_);
+    try std.testing.expect(tokens.items[10].payload == .eof);
+}
+
+test "single letter identifier" {
+    var l = Lexer.init("x");
+    var tokens = try l.lex(alloc);
+    defer tokens.deinit(alloc);
+    try std.testing.expectEqual(@as(usize, 2), tokens.items.len);
+    try std.testing.expect(tokens.items[0].payload == .identifier);
+    try std.testing.expectEqualStrings("x", tokens.items[0].payload.identifier);
+    try std.testing.expect(tokens.items[1].payload == .eof);
+}
+
+test "multi letter identifier" {
+    var l = Lexer.init("hello");
+    var tokens = try l.lex(alloc);
+    defer tokens.deinit(alloc);
+    try std.testing.expectEqual(@as(usize, 2), tokens.items.len);
+    try std.testing.expect(tokens.items[0].payload == .identifier);
+    try std.testing.expectEqualStrings("hello", tokens.items[0].payload.identifier);
+    try std.testing.expect(tokens.items[1].payload == .eof);
+}
+
+test "internal underscore identifier" {
+    var l = Lexer.init("test_ident");
+    var tokens = try l.lex(alloc);
+    defer tokens.deinit(alloc);
+    try std.testing.expectEqual(@as(usize, 2), tokens.items.len);
+    try std.testing.expect(tokens.items[0].payload == .identifier);
+    try std.testing.expectEqualStrings("test_ident", tokens.items[0].payload.identifier);
+    try std.testing.expect(tokens.items[1].payload == .eof);
+}
+
+test "ending underscore identifier" {
+    var l = Lexer.init("test_");
+    var tokens = try l.lex(alloc);
+    defer tokens.deinit(alloc);
+
+    try std.testing.expectEqual(@as(usize, 2), tokens.items.len);
+    try std.testing.expect(tokens.items[0].payload == .identifier);
+    try std.testing.expectEqualStrings("test_", tokens.items[0].payload.identifier);
+    try std.testing.expect(tokens.items[1].payload == .eof);
+}
+
+test "identifier with digits" {
+    var l = Lexer.init("hello123");
+    var tokens = try l.lex(alloc);
+    defer tokens.deinit(alloc);
+
+    try std.testing.expectEqual(@as(usize, 2), tokens.items.len);
+    try std.testing.expect(tokens.items[0].payload == .identifier);
+    try std.testing.expectEqualStrings("hello123", tokens.items[0].payload.identifier);
+    try std.testing.expect(tokens.items[1].payload == .eof);
+}
+
+test "long identifier" {
+    var l = Lexer.init("this_is_a_really_long_identifier_name_6767");
+    var tokens = try l.lex(alloc);
+    defer tokens.deinit(alloc);
+
+    try std.testing.expectEqual(@as(usize, 2), tokens.items.len);
+    try std.testing.expect(tokens.items[0].payload == .identifier);
+    try std.testing.expectEqualStrings(
+        "this_is_a_really_long_identifier_name_6767",
+        tokens.items[0].payload.identifier,
+    );
+    try std.testing.expect(tokens.items[1].payload == .eof);
+}
+
+test "identifier after newline" {
+    var l = Lexer.init("\nhello");
+    var tokens = try l.lex(alloc);
+    defer tokens.deinit(alloc);
+    try std.testing.expectEqual(@as(usize, 2), tokens.items.len);
+    try std.testing.expect(tokens.items[0].payload == .identifier);
+    try std.testing.expectEqualStrings("hello", tokens.items[0].payload.identifier);
+    try std.testing.expect(tokens.items[1].payload == .eof);
+}
+
+test "identifier after comment" {
+    var l = Lexer.init("// comment\nhellotest");
+    var tokens = try l.lex(alloc);
+    defer tokens.deinit(alloc);
+    try std.testing.expectEqual(@as(usize, 2), tokens.items.len);
+    try std.testing.expect(tokens.items[0].payload == .identifier);
+    try std.testing.expectEqualStrings("hellotest", tokens.items[0].payload.identifier);
+    try std.testing.expect(tokens.items[1].payload == .eof);
+}
+
+test "identifier beside punctuation" {
+    var l = Lexer.init("(hello)");
+    var tokens = try l.lex(alloc);
+    defer tokens.deinit(alloc);
+    try std.testing.expectEqual(@as(usize, 4), tokens.items.len);
+    try std.testing.expect(tokens.items[0].payload == .lparen);
+    try std.testing.expect(tokens.items[1].payload == .identifier);
+    try std.testing.expectEqualStrings("hello", tokens.items[1].payload.identifier);
+    try std.testing.expect(tokens.items[2].payload == .rparen);
+    try std.testing.expect(tokens.items[3].payload == .eof);
+}
+
+test "identifier beginning with keyword int" {
+    var l = Lexer.init("integer");
+    var tokens = try l.lex(alloc);
+    defer tokens.deinit(alloc);
+    try std.testing.expectEqual(@as(usize, 2), tokens.items.len);
+    try std.testing.expect(tokens.items[0].payload == .identifier);
+    try std.testing.expectEqualStrings("integer", tokens.items[0].payload.identifier);
+    try std.testing.expect(tokens.items[1].payload == .eof);
+}
+
+test "identifier beginning with keyword return" {
+    var l = Lexer.init("returnValue");
+    var tokens = try l.lex(alloc);
+    defer tokens.deinit(alloc);
+    try std.testing.expectEqual(@as(usize, 2), tokens.items.len);
+    try std.testing.expect(tokens.items[0].payload == .identifier);
+    try std.testing.expectEqualStrings("returnValue", tokens.items[0].payload.identifier);
+    try std.testing.expect(tokens.items[1].payload == .eof);
+}
+
+test "identifier beginning with keyword while" {
+    var l = Lexer.init("whileLoop");
+    var tokens = try l.lex(alloc);
+    defer tokens.deinit(alloc);
+    try std.testing.expectEqual(@as(usize, 2), tokens.items.len);
+    try std.testing.expect(tokens.items[0].payload == .identifier);
+    try std.testing.expectEqualStrings("whileLoop", tokens.items[0].payload.identifier);
+    try std.testing.expect(tokens.items[1].payload == .eof);
+}
+
+test "identifier beginning with keyword if" {
+    var l = Lexer.init("ifCondition");
+    var tokens = try l.lex(alloc);
+    defer tokens.deinit(alloc);
+    try std.testing.expectEqual(@as(usize, 2), tokens.items.len);
+    try std.testing.expect(tokens.items[0].payload == .identifier);
+    try std.testing.expectEqualStrings("ifCondition", tokens.items[0].payload.identifier);
+    try std.testing.expect(tokens.items[1].payload == .eof);
+}
+test "identifier beginning with keyword true" {
+    var l = Lexer.init("truecondition");
+    var tokens = try l.lex(alloc);
+    defer tokens.deinit(alloc);
+    try std.testing.expectEqual(@as(usize, 2), tokens.items.len);
+    try std.testing.expect(tokens.items[0].payload == .identifier);
+    try std.testing.expectEqualStrings("truecondition", tokens.items[0].payload.identifier);
+    try std.testing.expect(tokens.items[1].payload == .eof);
+}
+test "identifier beginning with keyword false" {
+    var l = Lexer.init("falsecondition");
+    var tokens = try l.lex(alloc);
+    defer tokens.deinit(alloc);
+    try std.testing.expectEqual(@as(usize, 2), tokens.items.len);
+    try std.testing.expect(tokens.items[0].payload == .identifier);
+    try std.testing.expectEqualStrings("falsecondition", tokens.items[0].payload.identifier);
+    try std.testing.expect(tokens.items[1].payload == .eof);
+}
+test "integer zero" {
+    var l = Lexer.init("0");
+    var tokens = try l.lex(alloc);
+    defer tokens.deinit(alloc);
+    try std.testing.expectEqual(@as(usize, 2), tokens.items.len);
+    try std.testing.expect(tokens.items[0].payload == .number);
+    try std.testing.expectEqual(@as(i64, 0), tokens.items[0].payload.number);
+    try std.testing.expect(tokens.items[1].payload == .eof);
+}
+test "single digit integer" {
+    var l = Lexer.init("9");
+    var tokens = try l.lex(alloc);
+    defer tokens.deinit(alloc);
+    try std.testing.expectEqual(@as(usize, 2), tokens.items.len);
+    try std.testing.expect(tokens.items[0].payload == .number);
+    try std.testing.expectEqual(@as(i64, 9), tokens.items[0].payload.number);
+    try std.testing.expect(tokens.items[1].payload == .eof);
+}
+test "multiple digit integer" {
+    var l = Lexer.init("67");
+    var tokens = try l.lex(alloc);
+    defer tokens.deinit(alloc);
+    try std.testing.expectEqual(@as(usize, 2), tokens.items.len);
+    try std.testing.expect(tokens.items[0].payload == .number);
+    try std.testing.expectEqual(@as(i64, 67), tokens.items[0].payload.number);
+    try std.testing.expect(tokens.items[1].payload == .eof);
+}
+test "leading zero integer" {
+    var l = Lexer.init("067");
+    var tokens = try l.lex(alloc);
+    defer tokens.deinit(alloc);
+    try std.testing.expectEqual(@as(usize, 2), tokens.items.len);
+    try std.testing.expect(tokens.items[0].payload == .number);
+    try std.testing.expectEqual(@as(i64, 67), tokens.items[0].payload.number);
+    try std.testing.expect(tokens.items[1].payload == .eof);
+}
+test "large integer" {
+    var l = Lexer.init("123456789");
+    var tokens = try l.lex(alloc);
+    defer tokens.deinit(alloc);
+    try std.testing.expectEqual(@as(usize, 2), tokens.items.len);
+    try std.testing.expect(tokens.items[0].payload == .number);
+    try std.testing.expectEqual(@as(i64, 123456789), tokens.items[0].payload.number);
+    try std.testing.expect(tokens.items[1].payload == .eof);
+}
+test "integer before operator" {
+    var l = Lexer.init("50+");
+    var tokens = try l.lex(alloc);
+    defer tokens.deinit(alloc);
+    try std.testing.expectEqual(@as(usize, 3), tokens.items.len);
+    try std.testing.expect(tokens.items[0].payload == .number);
+    try std.testing.expectEqual(@as(i64, 50), tokens.items[0].payload.number);
+    try std.testing.expect(tokens.items[1].payload == .plus);
+    try std.testing.expect(tokens.items[2].payload == .eof);
+}
+test "integer after operator" {
+    var l = Lexer.init("+50");
+    var tokens = try l.lex(alloc);
+    defer tokens.deinit(alloc);
+    try std.testing.expectEqual(@as(usize, 3), tokens.items.len);
+    try std.testing.expect(tokens.items[1].payload == .number);
+    try std.testing.expect(tokens.items[0].payload == .plus);
+    try std.testing.expectEqual(@as(i64, 50), tokens.items[1].payload.number);
+    try std.testing.expect(tokens.items[2].payload == .eof);
+}
+test "integer before punctuation" {
+    var l = Lexer.init("50,");
+    var tokens = try l.lex(alloc);
+    defer tokens.deinit(alloc);
+    try std.testing.expectEqual(@as(usize, 3), tokens.items.len);
+    try std.testing.expect(tokens.items[0].payload == .number);
+    try std.testing.expectEqual(@as(i64, 50), tokens.items[0].payload.number);
+    try std.testing.expect(tokens.items[1].payload == .comma);
+    try std.testing.expect(tokens.items[2].payload == .eof);
+}
+test "empty string" {
+    var l = Lexer.init("\"\"");
+    var tokens = try l.lex(alloc);
+    defer tokens.deinit(alloc);
+
+    try std.testing.expectEqual(@as(usize, 3), tokens.items.len);
+    try std.testing.expect(tokens.items[0].payload == .string_start);
+    try std.testing.expect(tokens.items[1].payload == .string_end);
+    try std.testing.expect(tokens.items[2].payload == .eof);
+}
+test "simple string" {
+    var l = Lexer.init("\"hello\"");
+    var tokens = try l.lex(alloc);
+    defer tokens.deinit(alloc);
+    try std.testing.expectEqual(@as(usize, 4), tokens.items.len);
+    try std.testing.expect(tokens.items[0].payload == .string_start);
+    try std.testing.expect(tokens.items[1].payload == .string_segment);
+    try std.testing.expectEqualStrings(
+        "hello",
+        tokens.items[1].payload.string_segment,
+    );
+    try std.testing.expect(tokens.items[2].payload == .string_end);
+    try std.testing.expect(tokens.items[3].payload == .eof);
+}
+test "string with spaces" {
+    var l = Lexer.init("\"    \"");
+    var tokens = try l.lex(alloc);
+    defer tokens.deinit(alloc);
+    try std.testing.expectEqual(@as(usize, 4), tokens.items.len);
+    try std.testing.expect(tokens.items[0].payload == .string_start);
+    try std.testing.expect(tokens.items[1].payload == .string_segment);
+    try std.testing.expectEqualStrings(
+        "    ",
+        tokens.items[1].payload.string_segment,
+    );
+    try std.testing.expect(tokens.items[2].payload == .string_end);
+    try std.testing.expect(tokens.items[3].payload == .eof);
+}
+test "string with punctuation" {
+    var l = Lexer.init("\".,;\"");
+    var tokens = try l.lex(alloc);
+    defer tokens.deinit(alloc);
+    try std.testing.expectEqual(@as(usize, 4), tokens.items.len);
+    try std.testing.expect(tokens.items[0].payload == .string_start);
+    try std.testing.expect(tokens.items[1].payload == .string_segment);
+    try std.testing.expectEqualStrings(
+        ".,;",
+        tokens.items[1].payload.string_segment,
+    );
+    try std.testing.expect(tokens.items[2].payload == .string_end);
+    try std.testing.expect(tokens.items[3].payload == .eof);
+}
+test "string with numbers" {
+    var l = Lexer.init("\"123456789\"");
+    var tokens = try l.lex(alloc);
+    defer tokens.deinit(alloc);
+    try std.testing.expectEqual(@as(usize, 4), tokens.items.len);
+    try std.testing.expect(tokens.items[0].payload == .string_start);
+    try std.testing.expect(tokens.items[1].payload == .string_segment);
+    try std.testing.expectEqualStrings(
+        "123456789",
+        tokens.items[1].payload.string_segment,
+    );
+    try std.testing.expect(tokens.items[2].payload == .string_end);
+    try std.testing.expect(tokens.items[3].payload == .eof);
+}
+test "string with operators" {
+    var l = Lexer.init("\"+-%*/+=-=><\"");
+    var tokens = try l.lex(alloc);
+    defer tokens.deinit(alloc);
+    try std.testing.expectEqual(@as(usize, 4), tokens.items.len);
+    try std.testing.expect(tokens.items[0].payload == .string_start);
+    try std.testing.expect(tokens.items[1].payload == .string_segment);
+    try std.testing.expectEqualStrings(
+        "+-%*/+=-=><",
+        tokens.items[1].payload.string_segment,
+    );
+    try std.testing.expect(tokens.items[2].payload == .string_end);
+    try std.testing.expect(tokens.items[3].payload == .eof);
+}
+test "string with braces" {
+    var l = Lexer.init("\"{}\"");
+    var tokens = try l.lex(alloc);
+    defer tokens.deinit(alloc);
+    try std.testing.expectEqual(@as(usize, 5), tokens.items.len);
+    try std.testing.expect(tokens.items[0].payload == .string_start);
+    try std.testing.expect(tokens.items[1].payload == .interpolation_start); // no support for string with braces in the string rn
+    try std.testing.expect(tokens.items[2].payload == .interpolation_end);
+    try std.testing.expect(tokens.items[3].payload == .string_end);
+    try std.testing.expect(tokens.items[4].payload == .eof);
+}
+test "long string" {
+    var l = Lexer.init("\"this string is supposed to test a long string\"");
+    var tokens = try l.lex(alloc);
+    defer tokens.deinit(alloc);
+    try std.testing.expectEqual(@as(usize, 4), tokens.items.len);
+    try std.testing.expect(tokens.items[0].payload == .string_start);
+    try std.testing.expect(tokens.items[1].payload == .string_segment);
+    try std.testing.expectEqualStrings("this string is supposed to test a long string", tokens.items[1].payload.string_segment);
+    try std.testing.expect(tokens.items[2].payload == .string_end);
+    try std.testing.expect(tokens.items[3].payload == .eof);
+}
+test "multiple strings" {
+    var l = Lexer.init("\"multiple\" \"string\"");
+    var tokens = try l.lex(alloc);
+    defer tokens.deinit(alloc);
+    try std.testing.expectEqual(@as(usize, 7), tokens.items.len);
+    try std.testing.expect(tokens.items[0].payload == .string_start);
+    try std.testing.expect(tokens.items[1].payload == .string_segment);
+    try std.testing.expectEqualStrings("multiple", tokens.items[1].payload.string_segment);
+    try std.testing.expect(tokens.items[2].payload == .string_end);
+    try std.testing.expect(tokens.items[3].payload == .string_start);
+    try std.testing.expect(tokens.items[4].payload == .string_segment);
+    try std.testing.expectEqualStrings("string", tokens.items[4].payload.string_segment);
+    try std.testing.expect(tokens.items[5].payload == .string_end);
+    try std.testing.expect(tokens.items[6].payload == .eof);
+}
+test "string followed by identifier" {
+    var l = Lexer.init("\"stringtest\"; ident");
+    var tokens = try l.lex(alloc);
+    defer tokens.deinit(alloc);
+    try std.testing.expectEqual(@as(usize, 6), tokens.items.len);
+    try std.testing.expect(tokens.items[0].payload == .string_start);
+    try std.testing.expect(tokens.items[1].payload == .string_segment);
+    try std.testing.expectEqualStrings("stringtest", tokens.items[1].payload.string_segment);
+    try std.testing.expect(tokens.items[2].payload == .string_end);
+    try std.testing.expect(tokens.items[3].payload == .semicolon);
+    try std.testing.expect(tokens.items[4].payload == .identifier);
+    try std.testing.expect(tokens.items[5].payload == .eof);
+}
+test "leading underscore identifier" {
+    var l = Lexer.init("_test");
+    var tokens = try l.lex(alloc);
+    defer tokens.deinit(alloc);
+    try std.testing.expectEqual(@as(usize, 3), tokens.items.len);
+    try std.testing.expect(tokens.items[0].payload == .invalid);
+    try std.testing.expectEqualStrings("_", tokens.items[0].payload.invalid);
+    try std.testing.expect(tokens.items[1].payload == .identifier);
+    try std.testing.expectEqualStrings("test", tokens.items[1].payload.identifier);
+    try std.testing.expect(tokens.items[2].payload == .eof);
+}
 test "identifier followed by string" {}
 test "string without interpolation" {}
 test "interpolation at beginning" {}
