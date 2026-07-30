@@ -1,7 +1,7 @@
 const std = @import("std");
-const lexerMod = @import("lexer.zig");
+const lexerMod = @import("lexer");
 const fetcher = @import("fetcher.zig");
-const parser = @import("parser.zig");
+const parser = @import("parser");
 const cli = @import("cli.zig");
 const astprinter = @import("astprinter.zig");
 
