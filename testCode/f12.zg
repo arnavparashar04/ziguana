@@ -1,0 +1,4 @@
+fn int main(){
+    string s = "{x}";
+    return 0;
+}

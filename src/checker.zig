@@ -9,6 +9,8 @@ const TokenTag = lexer.TokenTag;
 
 pub const CheckErr = struct {
     message: []const u8,
+    line: usize,
+    column: usize,
 };
 
 const FuncSig = struct {
@@ -43,7 +45,7 @@ pub const Checker = struct {
 
     fn addError(self: *Self, line: usize, column: usize, comptime fmt: []const u8, args: anytype) !void {
         const msg = try std.fmt.allocPrint(self.allocator, "{d}:{d}: " ++ fmt, .{ line, column } ++ args);
-        try self.errors.append(self.allocator, .{ .message = msg });
+        try self.errors.append(self.allocator, .{ .message = msg, .line = line, .column = column });
     }
 
     fn pushScope(self: *Self) !void {
@@ -138,6 +140,19 @@ pub const Checker = struct {
                 if (v.init) |init_val| {
                     switch (init_val) {
                         .expr => |ex| {
+                            if (ex.* == .interpolated_string) {
+                                const is = ex.interpolated_string;
+                                var has_expr = false;
+                                for (is.parts) |part| {
+                                    if (part == .expr) {
+                                        has_expr = true;
+                                        break;
+                                    }
+                                }
+                                if (has_expr) {
+                                    try self.addError(v.line, v.column, "interpolated string with expressions cannot be assigned to '{s}'", .{v.name});
+                                }
+                            }
                             const ety = try self.checkExpr(ex);
                             if (v.ty == .Auto) {
                                 stmt.var_decl.ty = ety;
