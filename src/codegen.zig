@@ -285,7 +285,7 @@ pub const CodeGen = struct {
             .Bool => "bool",
             .String => "const char*",
             .void_ => "void",
-            .Auto => "auto",
+            .Auto => unreachable,
         };
     }
     fn mapOp(op: TokenTag) []const u8 {
@@ -337,7 +337,7 @@ pub const CodeGen = struct {
             .String => "%s",
             .Bool => "%s",
             .void_ => "%s",
-            .Auto => "",
+            .Auto => unreachable,
         };
     }
 
